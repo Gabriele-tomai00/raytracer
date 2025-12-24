@@ -1,3 +1,9 @@
+# Other files
+a.out
+main
+.clang-format
+.DS_Store
+
 # Prerequisites
 *.d
 
