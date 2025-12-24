@@ -3,6 +3,8 @@
     Student ID: IN2300006
     Degree Program: Computer Engineering
 */
+#include "scene.h"
+#include "ppm.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -43,8 +45,34 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // file neme of the scene to be rendered and output image file name
+  char *scene_filename = "resources/test.txt";
+  char *output_filename = "results/image.ppm";
+
+  // default parameter values of viewpoint resolution in piexels
+  int viewpoint_width = 1920;
+  int viewpoint_height = 1080;
+
+  // overwrite parameters
+  if (argc == 5) {
+    scene_filename = argv[1];
+    output_filename = argv[2];
+    viewpoint_width = atoi(argv[3]);
+    viewpoint_height = atoi(argv[4]);
+  } else {
+    printf("Number of paramters not correct. Using default parameters\n");
+  }
 
   printf("%s", art);
+
+
+
+
+
+
+
+  
+  printf("Execution completed\n");
 
   return 0;
 }
