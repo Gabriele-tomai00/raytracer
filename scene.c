@@ -8,10 +8,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-int read_scene_from_file(char *scene_file, scene_ptr scene) {
+scene_error_t read_scene_from_file(char *scene_file, scene_ptr scene) {
     FILE *fd = fopen(scene_file, "r");
     if (!fd) {
-        return 1;
+        return SCENE_ERR_FILE_OPEN;
     }
 
     // read viewport
@@ -20,7 +20,7 @@ int read_scene_from_file(char *scene_file, scene_ptr scene) {
                &scene->viewport_size.y,
                &scene->viewport_size.z) != 3) {
         fclose(fd);
-        return 1;
+        return SCENE_ERR_VIEWPORT;
     }
 
     // read background color
@@ -29,20 +29,20 @@ int read_scene_from_file(char *scene_file, scene_ptr scene) {
                &scene->bg_color.green,
                &scene->bg_color.blue) != 3) {
         fclose(fd);
-        return 1;
+        return SCENE_ERR_BACKGROUND;
     }
 
     // read object count
     if (fscanf(fd, "OBJ_N %d\n", &scene->sphere_count) != 1) {
         fclose(fd);
-        return 1;
+        return SCENE_ERR_OBJECT_COUNT;
     }
 
     // memory allocation for spheres
     scene->spheres = malloc(scene->sphere_count * sizeof(struct rgb_sphere));
     if (!scene->spheres) {
         fclose(fd);
-        return 1;
+        return SCENE_ERR_MEMORY;
     }
 
     // read and validate spheres (fail-fast)
@@ -59,7 +59,7 @@ int read_scene_from_file(char *scene_file, scene_ptr scene) {
                    &sphere->color.blue) != 7) {
             free(scene->spheres);
             fclose(fd);
-            return 1;
+            return SCENE_ERR_SPHERE_MALFORMED;
         }
 
         if (sphere->radius <= 0.0f ||
@@ -71,12 +71,12 @@ int read_scene_from_file(char *scene_file, scene_ptr scene) {
             sphere->color.blue  < 0) {
             free(scene->spheres);
             fclose(fd);
-            return 1;
+            return SCENE_ERR_SPHERE_INVALID;
         }
     }
 
     fclose(fd);
-    return 0;
+    return SCENE_ERR_NONE;
 }
 
 

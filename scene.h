@@ -44,8 +44,34 @@ struct scene {
 typedef struct scene scene;
 typedef struct scene *scene_ptr;
 
+typedef enum {
+    SCENE_ERR_NONE = 0,
+    SCENE_ERR_FILE_OPEN,
+    SCENE_ERR_VIEWPORT,
+    SCENE_ERR_BACKGROUND,
+    SCENE_ERR_OBJECT_COUNT,
+    SCENE_ERR_MEMORY,
+    SCENE_ERR_SPHERE_MALFORMED,
+    SCENE_ERR_SPHERE_INVALID,
+    SCENE_ERR_NO_VALID_SPHERES
+} scene_error_t;
 
-int read_scene_from_file(char *path, scene_ptr scene);
+static inline const char* scene_error_message(scene_error_t err) {
+    switch (err) {
+        case SCENE_ERR_NONE:               return "Scene loaded successfully";
+        case SCENE_ERR_FILE_OPEN:          return "Error: Cannot open scene file";
+        case SCENE_ERR_VIEWPORT:           return "Error: Malformed viewport header";
+        case SCENE_ERR_BACKGROUND:         return "Error: Malformed background color header";
+        case SCENE_ERR_OBJECT_COUNT:       return "Error: Malformed object count header";
+        case SCENE_ERR_MEMORY:             return "Error: Memory allocation failed for spheres";
+        case SCENE_ERR_SPHERE_MALFORMED:   return "Error: Malformed sphere definition";
+        case SCENE_ERR_SPHERE_INVALID:     return "Error: Sphere has invalid radius or color";
+        case SCENE_ERR_NO_VALID_SPHERES:   return "Error: No valid spheres found in scene file";
+        default:                           return "Unknown scene error";
+    }
+}
+
+scene_error_t read_scene_from_file(char *path, scene_ptr scene);
 int render_image(scene_ptr scn, pixel_ptr framebuffer, int w, int h);
 
 #endif
