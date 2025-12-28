@@ -1,7 +1,5 @@
 # Raytracer
 
-[![C/C++ CI](https://github.com/Gabriele-tomai00/raytracer/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/Gabriele-tomai00/raytracer/actions/workflows/c-cpp.yml)
-
 ![Raytracing img](img_readme/raytracing.png)
 
 implementation in C of a simple raytracer for the 'advanced and parallel programming' exam
