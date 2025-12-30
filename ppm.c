@@ -12,6 +12,18 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+/*
+    Writes a PPM image to disk using memory mapping.
+    The image buffer is copied directly after the PPM header.
+
+    @param path   output file path
+    @param pixels pointer to the pixel buffer
+    @param width  image width in pixels
+    @param height image height in pixels
+
+    @return error_t: ERR_NONE on success, specific error code on failure
+ */
+
 error_t write_ppm(const char *path, const pixel *pixels, int width, int height) {
 
     FILE *fp = fopen(path, "w+");
@@ -38,6 +50,7 @@ error_t write_ppm(const char *path, const pixel *pixels, int width, int height) 
         return PPM_ERR_MMAP;       // error mapping file to memory
     }
 
+    // write header and pixel data
     snprintf((char *)mapped, header_len + 1, "P6\n%d %d\n255\n", width, height);
     memcpy(mapped + header_len, pixels, pixel_bytes);
 
