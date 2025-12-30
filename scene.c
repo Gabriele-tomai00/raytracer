@@ -110,7 +110,6 @@ Vector normalization using multiplication by inverse length
  @param v   input vector
  @return  unit-length version of the input vector
 */ 
-
 static inline vector normalize_vector(vector v) {
     float norm = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     if (norm == 0.0f) {
@@ -140,6 +139,7 @@ int render_image(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
     float dx = vp_size.x / (w - 1);
     float dy = vp_size.y / (h - 1);
 
+#pragma omp parallel for collapse(2)
     for (int y = 0; y < h; y++) {
         for (int i = 0; i < w; i++) {
 
