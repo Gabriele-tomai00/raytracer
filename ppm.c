@@ -16,7 +16,7 @@ error_t write_ppm(const char *path, const pixel *pixels, int width, int height) 
 
     FILE *fp = fopen(path, "w+");
     if (fp == NULL) {
-        return 1;
+        return PPM_ERR_FILE_OPEN;  // failed to open file
     }
 
     int fd = fileno(fp);
@@ -27,7 +27,7 @@ error_t write_ppm(const char *path, const pixel *pixels, int width, int height) 
 
     if (ftruncate(fd, file_size) == -1) {
         fclose(fp);
-        return 1;
+        return PPM_ERR_FTRUNCATE; // error setting file size
     }
 
     unsigned char *mapped = mmap(NULL, file_size,
@@ -35,7 +35,7 @@ error_t write_ppm(const char *path, const pixel *pixels, int width, int height) 
                                  MAP_SHARED, fd, 0);
     if (mapped == MAP_FAILED) {
         fclose(fp);
-        return 1;
+        return PPM_ERR_MMAP;       // error mapping file to memory
     }
 
     snprintf((char *)mapped, header_len + 1, "P6\n%d %d\n255\n", width, height);
@@ -43,9 +43,9 @@ error_t write_ppm(const char *path, const pixel *pixels, int width, int height) 
 
     if (munmap(mapped, file_size) == -1) {
         fclose(fp);
-        return 1;
+        return PPM_ERR_MUNMAP;     // error unmapping memory
     }
 
     fclose(fp);
-    return 0;
+    return PPM_ERR_NONE;
 }
