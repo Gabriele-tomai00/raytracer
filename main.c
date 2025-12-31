@@ -79,8 +79,14 @@ int main(int argc, char *argv[]) {
   if (argc == 5) {
     scene_filename = argv[1];
     output_filename = argv[2];
+    // atoi parses string to integer
     viewpoint_width = atoi(argv[3]);
     viewpoint_height = atoi(argv[4]);
+    // if width or height are not positive integers, atoi returns 0, so we raise an error
+    if (viewpoint_width <= 0 || viewpoint_height <= 0) {
+      printf("Width and height must be positive integers\n");
+      return 1;
+    }
   } else {
     printf("Number of paramters not correct. Using default parameters\n");
   }
@@ -108,7 +114,7 @@ int main(int argc, char *argv[]) {
   }
 
   // render
-  if (render_image(&sc, image, viewpoint_width, viewpoint_height) != 0) {
+  if (render_img(&sc, image, viewpoint_width, viewpoint_height) != 0) {
       fprintf(stderr, "Error rendering image\n");
       free(image);
   }
