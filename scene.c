@@ -9,6 +9,7 @@
 #include <math.h>
 
 /*
+    Function: read_scene_from_file
     Reads a scene description from a text file and initializes a scene structure.
     The function parses the scene header (viewport, background color, object count) 
     and loads all valid sphere definitions. Malformed or invalid spheres are skipped.
@@ -18,13 +19,13 @@
     @param scene Pointer to the scene structure to initialize
     @return 0 on success, 1 on critical failure
 
-    // FILE FORMAT (exemple):
-    // VP 1.777 1 1
-    // BG 255 255 255
-    // OBJ_N 16
-    // S 0.2 1 4 0.2 200 0 0
-    // S 0.2 1.5 5 0.4 150 0 0
-    // ...
+    FILE FORMAT (exemple):
+        VP 1.777 1 1
+        BG 255 255 255
+        OBJ_N 16
+        S 0.2 1 4 0.2 200 0 0
+        S 0.2 1.5 5 0.4 150 0 0
+        ...
 */
 
 scene_error_t read_scene_from_file(char *scene_file, scene_ptr scene) {
@@ -44,9 +45,9 @@ scene_error_t read_scene_from_file(char *scene_file, scene_ptr scene) {
 
     // read background color
     if (fscanf(fd, "BG %hhu %hhu %hhu\n",
-               &scene->bg_color.red,
-               &scene->bg_color.green,
-               &scene->bg_color.blue) != 3) {
+               &scene->background_color.red,
+               &scene->background_color.green,
+               &scene->background_color.blue) != 3) {
         fclose(fd);
         return SCENE_ERR_BACKGROUND;
     }
@@ -66,32 +67,30 @@ scene_error_t read_scene_from_file(char *scene_file, scene_ptr scene) {
 
     // read and validate spheres (fail-fast)
     for (int i = 0; i < scene->sphere_count; i++) {
-        struct rgb_sphere *sphere = &scene->spheres[i];
-
         if (fscanf(fd, "S %f %f %f %f %hhu %hhu %hhu\n",
-                   &sphere->center.x,
-                   &sphere->center.y,
-                   &sphere->center.z,
-                   &sphere->radius,
-                   &sphere->color.red,
-                   &sphere->color.green,
-                   &sphere->color.blue) != 7) {
+            &scene->spheres[i].center.x,
+            &scene->spheres[i].center.y,
+            &scene->spheres[i].center.z,
+            &scene->spheres[i].radius,
+            &scene->spheres[i].color.red,
+            &scene->spheres[i].color.green,
+            &scene->spheres[i].color.blue) != 7) {
             free(scene->spheres);
             fclose(fd);
             return SCENE_ERR_SPHERE_MALFORMED;
         }
 
-        if (sphere->radius <= 0.0f ||
-            sphere->color.red   > 255 ||
-            sphere->color.red   < 0 ||
-            sphere->color.green > 255 ||
-            sphere->color.green < 0 ||
-            sphere->color.blue  > 255 ||
-            sphere->color.blue  < 0) {
+        // check sphere validity: radius > 0, color components in [0,255]
+        if (scene->spheres[i].radius <= 0.0f ||
+            scene->spheres[i].color.red > 255 ||
+            scene->spheres[i].color.green > 255 ||
+            scene->spheres[i].color.blue > 255)
+        {
             free(scene->spheres);
             fclose(fd);
             return SCENE_ERR_SPHERE_INVALID;
         }
+
     }
 
     fclose(fd);
@@ -106,9 +105,9 @@ static inline float dot_product(vector v1, vector v2) {
 }
 
 /*
-Vector normalization using multiplication by inverse length
- @param v   input vector
- @return  unit-length version of the input vector
+    Vector normalization using multiplication by inverse length
+    @param v    input vector
+    @return     unit-length version of the input vector
 */ 
 static inline vector normalize_vector(vector v) {
     float norm = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -122,6 +121,7 @@ static inline vector normalize_vector(vector v) {
 
 /*
     Renders the scene into a pixel buffer using ray–sphere intersection.
+    For each pixel, a ray is cast through the viewport and the closest
     intersected sphere determines the pixel color; if no intersection
     occurs, the background color is used.
 
@@ -133,7 +133,7 @@ static inline vector normalize_vector(vector v) {
     @return 0 on successful completion.
  */
 
-int render_image(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
+int render_img(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
 
     vector vp_size = scn->viewport_size;
     float dx = vp_size.x / (w - 1);
@@ -149,43 +149,49 @@ int render_image(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
                 vp_size.z
             };
 
-            vector dir = normalize_vector(ray_vec);
+            vector direction = normalize_vector(ray_vec);
 
-            float nearest_t = INFINITY;
+            float nearest_intersection = INFINITY;
             // pointer to the closest hit sphere
             const sphere *hit = NULL;
 
+            // test intersection with all spheres
             for (int s = 0; s < scn->sphere_count; ++s) {
                 const sphere *sp = &scn->spheres[s];
 
                 // compute ray-sphere intersection
-                float a = 1.0f; // since dir is normalized
-                float b = -2.0f * dot_product(sp->center, dir);
+                // a b c coefficients of the quadratic equation
+                float a = 1.0f; // because direction is normalized
+                float b = -2.0f * dot_product(sp->center, direction);
                 float c = dot_product(sp->center, sp->center) - sp->radius * sp->radius;
 
                 float delta = b * b - 4.0f * a * c;
+                // no intersection if delta < 0
                 if (delta < 0.0f) continue;
 
-                float sqrt_delta = sqrt(delta);
-                // check both intersection points and take the nearest positive t
-                float t1 = (-b - sqrt_delta) / (2.0f * a);
-                float t2 = (-b + sqrt_delta) / (2.0f * a);
+                float discriminant_sqrt = sqrt(delta);
 
-                // scegli il più piccolo t positivo
-                float t = INFINITY;
-                if (t1 > 0.0f) t = t1;
-                if (t2 > 0.0f && t2 < t) t = t2;
+                // intersection points along the ray
+                float t_near = (-b - discriminant_sqrt) / (2.0f * a);
+                float t_far  = (-b + discriminant_sqrt) / (2.0f * a);
 
+                // find the nearest positive intersection
+                float t_hit = INFINITY;
+                if (t_near > 0.0f) 
+                    t_hit = t_near;
+                if (t_far > 0.0f && t_far < t_hit) 
+                    t_hit = t_far;
 
-                if (t < nearest_t) {
-                    nearest_t = t;
+                // update the closest hit sphere along the ray
+                if (t_hit < nearest_intersection) {
+                    nearest_intersection = t_hit;
                     hit = sp;
                 }
             }
 
-            // set pixel color based on intersection, or background color if no hit
-            int idx = (h - 1 - y) * w + i;
-            framebuffer[idx] = (hit != NULL) ? hit->color : scn->bg_color;
+                // set pixel color based on intersection, or background color if no hit
+                int idx = (h - 1 - y) * w + i;
+                framebuffer[idx] = (hit != NULL) ? hit->color : scn->background_color;
         }
     }
 
