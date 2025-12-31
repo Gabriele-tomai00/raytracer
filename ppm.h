@@ -4,8 +4,8 @@
     Degree Program: Computer Engineering
 */
 
-#ifndef _PPM_H
-#define _PPM_H
+#ifndef PPM_H
+#define PPM_H
 
 #include "scene.h"
 typedef enum {
@@ -27,6 +27,6 @@ static inline const char* ppm_error_message(error_t err) {
     }
 }
 
-error_t write_ppm(const char *path, const pixel *image, int width, int height);
+error_t write_ppm(const char *output_path, const pixel *image, int width, int height);
 
 #endif
