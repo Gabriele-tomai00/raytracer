@@ -1,13 +1,12 @@
 CC = gcc-15
-TARGET = main
 CFLAGS = -O3 -Wall -pedantic -fopenmp
 
-all: $(TARGET)
+all: main
 
-$(TARGET): main.o scene.o ppm.o
-	$(CC) $(CFLAGS) -o $@ $^ -lm
+main: main.o scene.o ppm.o
+	$(CC) $(CFLAGS) -o $@ $^
 
-main.o: main.c scene.h
+main.o: main.c scene.h ppm.h
 	$(CC) $(CFLAGS) -c $<
 
 scene.o: scene.c scene.h
@@ -17,6 +16,6 @@ ppm.o: ppm.c ppm.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f main *.o
 
 .PHONY: all clean
