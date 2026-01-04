@@ -97,9 +97,6 @@ scene_error_t read_scene_from_file(char *scene_file, scene_ptr scene) {
     return SCENE_ERR_NONE;
 }
 
-
-
-// Dot product between two vectors
 static inline float dot_product(vector v1, vector v2) {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
@@ -129,20 +126,20 @@ static inline vector normalize_vector(vector v) {
     @param framebuffer - pointer to the output pixel array
     @param w           - image width in pixels
     @param h           - image height in pixels
-
     @return 0 on successful completion.
  */
 
 int render_img(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
 
     vector vp_size = scn->viewport_size;
+    // precompute pixel size in viewport
     float dx = vp_size.x / (w - 1);
     float dy = vp_size.y / (h - 1);
 
 #pragma omp parallel for collapse(2)
     for (int y = 0; y < h; y++) {
         for (int i = 0; i < w; i++) {
-
+            // compute ray direction for pixel (i, y)
             vector ray_vec = {
                 i * dx - vp_size.x * 0.5f,
                 y * dy - vp_size.y * 0.5f,
@@ -151,9 +148,9 @@ int render_img(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
 
             vector direction = normalize_vector(ray_vec);
 
-            float nearest_intersection = INFINITY;
-            // pointer to the closest hit sphere
-            const sphere *hit = NULL;
+            // hit: valid intersection along the ray
+            float closest_hit_t = INFINITY;
+            const sphere *closest_sphere = NULL;
 
             // test intersection with all spheres
             for (int s = 0; s < scn->sphere_count; ++s) {
@@ -161,7 +158,7 @@ int render_img(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
 
                 // compute ray-sphere intersection
                 // a b c coefficients of the quadratic equation
-                float a = 1.0f; // because direction is normalized
+                float a = 1.0f; // direction is normalized
                 float b = -2.0f * dot_product(sp->center, direction);
                 float c = dot_product(sp->center, sp->center) - sp->radius * sp->radius;
 
@@ -171,27 +168,28 @@ int render_img(scene_ptr scn, pixel_ptr framebuffer, int w, int h) {
 
                 float discriminant_sqrt = sqrt(delta);
 
+                // t: real distance along the ray
                 // intersection points along the ray
-                float t_near = (-b - discriminant_sqrt) / (2.0f * a);
-                float t_far  = (-b + discriminant_sqrt) / (2.0f * a);
+                float t_entry = (-b - discriminant_sqrt) / (2.0f * a);
+                float t_exit  = (-b + discriminant_sqrt) / (2.0f * a);
 
                 // find the nearest positive intersection
-                float t_hit = INFINITY;
-                if (t_near > 0.0f) 
-                    t_hit = t_near;
-                if (t_far > 0.0f && t_far < t_hit) 
-                    t_hit = t_far;
+                float sphere_hit_t = INFINITY;
+                if (t_entry > 0.0f) 
+                    sphere_hit_t = t_entry;
+                if (t_exit > 0.0f && t_exit < sphere_hit_t) 
+                    sphere_hit_t = t_exit;
 
                 // update the closest hit sphere along the ray
-                if (t_hit < nearest_intersection) {
-                    nearest_intersection = t_hit;
-                    hit = sp;
+                if (sphere_hit_t < closest_hit_t) {
+                    closest_hit_t = sphere_hit_t;
+                    closest_sphere = sp;
                 }
             }
 
                 // set pixel color based on intersection, or background color if no hit
                 int idx = (h - 1 - y) * w + i;
-                framebuffer[idx] = (hit != NULL) ? hit->color : scn->background_color;
+                framebuffer[idx] = (closest_sphere != NULL) ? closest_sphere->color : scn->background_color;
         }
     }
 
