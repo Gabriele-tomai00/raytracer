@@ -9,13 +9,17 @@ Implementation in C of a simple ray tracer.
 - Input: a .txt file representing a scene containing a declared number of colored spheres  
 - Output: render the corresponding image in .ppm format
 
-## Description
+# Description
 
-### Components
+## Components
 1. Camera: located at coordinates (0, 0, 0)  
 2. Viewport: a rectangle perpendicular to the z-axis (the z-axis passes through its center)  
-3. Props: spheres with center \(C=(x_s, y_s, z_s)\) and radius \(r\)  
-4. Rays that can hit the spheres and reflect light
+3. Spheres: spheres with center \(C=(x_s, y_s, z_s)\) and radius \(r\)  
+
+## Ray tracing algorithm
+
+For each pixel, a primary ray is generated from the camera origin through the corresponding point on the viewport. The ray is tested against all spheres in the scene by solving the ray–sphere intersection equation. If multiple intersections occur, the closest positive intersection along the ray is selected. If no intersection is found, the background color is used.
+
 
 ## Input file: .txt
 There is an example file in the `/resources` folder.  
@@ -45,7 +49,20 @@ width height
 ```
 - P6 is the format; width and height refer to the image in pixels; 255 is the maximum intensity value for each color channel.
 
-## Compilation
+The PPM file is written using memory-mapped I/O (mmap).
+
+## Parallelization
+The rendering loop is parallelized using OpenMP. Pixel computation is independent, therefore a parallel for with loop collapse is used to distribute the workload across multiple threads.
+
+---
+
+# Compilation
+
+## Requirements
+
+- GCC with OpenMP support
+- POSIX-compliant system (Linux/macOS)
+
 Compile the program with: `make`
 ## Execution
 Run the program with: `./main` 
