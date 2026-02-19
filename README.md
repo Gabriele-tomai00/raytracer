@@ -71,8 +71,3 @@ Run the program with: `./main`
 Or run with custom parameters (./main scene-file img-name img-width-px img-height-px). For example:
 `./main scene.txt output.ppm 800 600`
 
-## Conclusion and check
-The `/results` folder contains the file `reference.ppm` (1920x1080 image not generated with this program).
-It is therefore possible to use this program to generate a new image from the same test.txt file (`./main ./resources/test.txt ./results/test.ppm 1920 1080`) and verify that the two images are identical.
-
-
